@@ -1,61 +1,101 @@
 import pygame
-import chess
-import os
+from valid_moves import is_valid_move
 
-# Initialize Pygame
 pygame.init()
 
-# Set the size of the window
-window_size = (640, 640)
+SIZE = (640, 640)
 
-# Set the size of each square on the chessboard
-square_size = window_size[0] // 8
+screen = pygame.display.set_mode(SIZE)
 
-# Set the size of the chess pieces
-piece_size = square_size * 0.8
+pygame.display.set_caption('Chess Board')
 
-# Set the font for text on the window
-font = pygame.font.Font(None, 36)
+square_size = 80
 
-# Create the Pygame window
-screen = pygame.display.set_mode(window_size)
+class Board:
+    def __init__(self, size=1, pos=(0, 0)):
+        self.board_surface = pygame.Surface((square_size * 8 * size, square_size * 8 * size))
+        self.pos = pos
+        self.size = size
+        self.board_state = [['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'],
+                            ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'],
+                            ['.', '.', '.', '.', '.', '.', '.', '.'],
+                            ['.', '.', '.', '.', '.', '.', '.', '.'],
+                            ['.', '.', '.', '.', '.', '.', '.', '.'],
+                            ['.', '.', '.', '.', '.', '.', '.', '.'],
+                            ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'],
+                            ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R']]
 
-# Load the chess piece images
-piece_images = {}
-for color in ("b", "w"):
-    for piece in ("p", "n", "b", "r", "q", "k"):
-        filename = os.path.join("images", f"{color}{piece}.png")
-        piece_images[color, piece] = pygame.image.load(filename)
+        self.piece_images = {}
+        self.load_images()
 
-# Create the chess board
-board = chess.Board()
+    def load_images(self):
+        for color in ['w', 'b']:
+            for piece_type in ['p', 'r', 'n', 'b', 'q', 'k']:
+                filename = f'images/{color}{piece_type}.png'
+                self.piece_images[f'{color}{piece_type}'] = pygame.image.load(filename)
 
-# Main game loop
-while True:
-    # Handle events
+    def draw(self):
+        for row in range(8):
+            for col in range(8):
+                x = col * square_size * self.size
+                y = row * square_size * self.size
+
+                if (row + col) % 2 == 0:
+                    color = (210, 180, 140)
+                else:
+                    color = (140, 80, 30)
+
+                pygame.draw.rect(self.board_surface, color, [x, y, square_size * self.size, square_size * self.size])
+
+                piece = self.board_state[row][col]
+                if piece != '.':
+                    if piece == piece.lower():
+                        piece = "b" + piece
+                    else:
+                        piece = "w" + piece.lower()
+                    piece_image = self.piece_images[f'{piece}']
+                    piece_image = pygame.transform.scale(piece_image, (square_size * self.size, square_size * self.size))
+                    piece_rect = piece_image.get_rect()
+                    piece_rect.x = x
+                    piece_rect.y = y
+                    self.board_surface.blit(piece_image, piece_rect)
+
+        screen.blit(self.board_surface, self.pos)
+        pygame.display.update()
+
+    def get_square(self, pos):
+        x, y = pos
+        x -= self.pos[0]
+        y -= self.pos[1]
+        col = x // (square_size * self.size)
+        row = y // (square_size * self.size)
+        return (row, col)
+
+board = Board(1, (0, 0))
+
+mouse_down_pos = None
+mouse_up_pos = None
+
+running = True
+while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            pygame.quit()
-            exit()
-    
-    # Draw the board and pieces
-    screen.fill(pygame.Color("white"))
-    for rank in range(8):
-        for file in range(8):
-            square = chess.square(file, rank)
-            color = "white" if (rank + file) % 2 == 0 else "dark gray"
-            rect = pygame.Rect(file * square_size, rank * square_size, square_size, square_size)
-            pygame.draw.rect(screen, pygame.Color(color), rect)
-            piece = board.piece_at(square)
-            if piece:
-                if piece.color:
-                    color = "w"
-                else:
-                    color = "b"
-                img = piece_images[color, piece.symbol().lower()]
-                img = pygame.transform.scale(img, (int(piece_size), int(piece_size)))
-                img_rect = img.get_rect(center=rect.center)
-                screen.blit(img, img_rect)
-    
-    # Display the window
-    pygame.display.flip()
+            running = False
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            mouse_down_pos = pygame.mouse.get_pos()
+
+        elif event.type == pygame.MOUSEBUTTONUP:
+            mouse_up_pos = pygame.mouse.get_pos()
+            start_pos = board.get_square(mouse_down_pos)
+            end_pos = board.get_square(mouse_up_pos)
+
+            if is_valid_move(board, start_pos, end_pos):
+                x = round(start_pos[0], 0)
+                y = round(start_pos[1], 0)
+                p = board.board_state[int(start_pos[0])][(int(start_pos[1]))]
+                board.board_state[int(start_pos[0])][(int(start_pos[1]))] = "."
+                x = round(end_pos[0], 0)
+                y = round(end_pos[1], 0)
+                board.board_state[int(end_pos[0])][int(end_pos[1])] = p
+
+    board.draw()
