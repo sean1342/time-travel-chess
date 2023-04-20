@@ -96,13 +96,9 @@ boards = [[board1, board2, board3],
           [board4, board5, board6],
           [board7, board8, board9]]
 
-s_board = None
-e_board = None
-
-mouse_down_pos = None
-mouse_up_pos = None
-
 draw(boards)
+
+clicking = False
 
 running = True
 while running:
@@ -111,12 +107,16 @@ while running:
             running = False
         elif event.type == pygame.MOUSEBUTTONDOWN:
             mouse_down_pos = pygame.mouse.get_pos()
-            b = None
+            s_board = None
             for l in boards:
                 for board in l:
                     if mouse_down_pos[0] > board.pos[0] and mouse_down_pos[0] < board.pos[0] + square_size * 8 * board.size and \
                        mouse_down_pos[1] > board.pos[1] and mouse_down_pos[1] < board.pos[1] + square_size * 8 * board.size:
                         s_board = board
+
+            if not s_board:
+                clicking = True
+                break
 
             start_pos = s_board.get_square(mouse_down_pos)
             for l in boards:
@@ -127,17 +127,19 @@ while running:
                                 valid_moves.append((board, (j, i)))
 
         elif event.type == pygame.MOUSEBUTTONUP:
+            clicking = False
             valid_moves = []
             draw(boards)
-
             mouse_up_pos = pygame.mouse.get_pos()
+
+            e_board = None
             for l in boards:
                 for board in l:
                     if mouse_up_pos[0] > board.pos[0] and mouse_up_pos[0] < board.pos[0] + square_size * 8 * board.size and \
                        mouse_up_pos[1] > board.pos[1] and mouse_up_pos[1] < board.pos[1] + square_size * 8 * board.size:
                         e_board = board
 
-            if not e_board:
+            if not e_board or not s_board:
                 break
 
             mouse_up_pos = pygame.mouse.get_pos()
@@ -156,5 +158,9 @@ while running:
 
             s_board = None
             e_board = None
+
+        if clicking:
+            # code for moving board positions based off mouse input
+            pass
 
         draw(boards)
